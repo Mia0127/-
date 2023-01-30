@@ -140,7 +140,6 @@ for i in range(len(df2)):
             df2['sta_count_all'][i] = int(df2['sta_count'][i]) + int(df2['sta_count'][i+1])
             df2['sta_count_all'][i+1] = df2['sta_count_all'][i]
 
-# df2.head(40)  ???
 # =============================================================================
 
 # Add datetime (GMT +8) and timestamp
@@ -171,14 +170,6 @@ from bson.objectid import ObjectId
 from datetime import datetime, timedelta
 
 previous_day = datetime.now() - timedelta(days=1) 
-
-client = MongoClient("140.118.70.40",27017)
-db = client['AP']
-col=db["Controller4"]
-# col.delete_many({"Datetime": {"$lt": previous_day}})
-# col.delete_many({})
-col.insert_many(data_json)
-
 
 # =============================================================================
 
@@ -255,9 +246,6 @@ soup = BeautifulSoup(res.text, 'html.parser')
 header_tags = soup.find_all('header')
 row_tags=soup.find_all('row')
 
-
-
-
 # =============================================================================
 
 # Rearrange DataFrame
@@ -281,7 +269,6 @@ for values in row_tags:
         
     index+=1
     df[index]=data_total
-
 
 # =============================================================================
 
@@ -314,28 +301,49 @@ ts = ts - timedelta(hours=n)
 ts_tw_str = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 ts_tw = datetime.datetime.now()
 
-
 # =============================================================================
 
 # create json
 
-data_json = json.loads(df.to_json(orient='records'))
+data_json2 = json.loads(df.to_json(orient='records'))
 
-for i in range(len(data_json)):
+for i in range(len(data_json2)):
     try:
-        data_json[i]['sta_count'] = int(data_json[i]['sta_count'])
-        data_json[i]['ap_status'] = int(data_json[i]['ap_status'])
-        data_json[i]['ap_provisioned'] = int(data_json[i]['ap_provisioned'])
-        data_json[i]['ap_uptime'] = int(data_json[i]['ap_uptime'])
-        data_json[i]['ap_deployment_mode'] = int(data_json[i]['ap_deployment_mode'])
-        data_json[i]['ap_model'] = int(data_json[i]['ap_model'])
+        data_json2[i]['sta_count'] = int(data_json2[i]['sta_count'])
+        data_json2[i]['ap_status'] = int(data_json2[i]['ap_status'])
+        data_json2[i]['ap_provisioned'] = int(data_json2[i]['ap_provisioned'])
+        data_json2[i]['ap_uptime'] = int(data_json2[i]['ap_uptime'])
+        data_json2[i]['ap_deployment_mode'] = int(data_json2[i]['ap_deployment_mode'])
+        data_json2[i]['ap_model'] = int(data_json2[i]['ap_model'])
     except Exception:
         pass
-    data_json[i]['ts'] = ts 
-    data_json[i]['DatetimeStr'] = ts_tw_str
-    data_json[i]['Datetime'] = ts_tw
-data_json[1]
+    data_json2[i]['ts'] = ts 
+    data_json2[i]['DatetimeStr'] = ts_tw_str
+    data_json2[i]['Datetime'] = ts_tw
+#data_json[1]
 # print(data_json[1])
+for i in range(len(data_json2)):
+    for j in range(len(data_json)):
+        if(data_json2[i]['ap_name']==data_json[j]['ap_name']):
+            data_json2[i]['radio_band']=data_json[j]['radio_band']
+            data_json2[i]['arm_ch_qual']=data_json[j]['arm_ch_qual']
+            data_json2[i]['ap_quality']=data_json[j]['ap_quality']
+            data_json2[i]['rx_time']=data_json[j]['rx_time']
+            data_json2[i]['tx_time']=data_json[j]['tx_time']
+            data_json2[i]['channel_interference']=data_json[j]['channel_interference']
+            data_json2[i]['channel_free']=data_json[j]['channel_free']
+            data_json2[i]['channel_busy']=data_json[j]['channel_busy']
+            data_json2[i]['sta_count']=data_json[j]['sta_count']
+            data_json2[i]['eirp_10x']=data_json[j]['eirp_10x']
+            data_json2[i]['tx_bytes_transmitted']=data_json[j]['tx_bytes_transmitted']
+            data_json2[i]['rx_data_bytes']=data_json[j]['rx_data_bytes']
+            data_json2[i]['total_data_bytes']=data_json[j]['total_data_bytes']
+            data_json2[i]['mesh_tx_goodput']=data_json[j]['mesh_tx_goodput']
+            data_json2[i]['mesh_rx_goodput']=data_json[j]['mesh_rx_goodput']
+            data_json2[i]['current_channel_utilization']=data_json[j]['current_channel_utilization']
+            data_json2[i]['channel_str']=data_json[j]['channel_str']            
+            break
+
 # =============================================================================
 
 # Store json data to MongoDB
@@ -349,11 +357,7 @@ client = MongoClient("140.118.70.40",27017)
 db = client['AP']
 col=db["Controller4"]
 col.delete_many({"Datetime": {"$lt": previous_day}})
-col.insert_many(data_json)
-
-
-
- 
+col.insert_many(data_json2)
 
 # =============================================================================
 
@@ -370,7 +374,6 @@ payloadData = 'query=<aruba_queries><query><qname>backend-observer-sta-13</qname
 res = requests.post(url, verify=False, headers = headers, cookies = cookie, data = payloadData.encode('utf-8'))
 soup = BeautifulSoup(res.text, 'html.parser')
 header_tags = soup.find_all('header')
-
 row_tags=soup.find_all('row')
 
 # =============================================================================
@@ -629,72 +632,5 @@ col=db["Controller4"]
 col.delete_many({"Datetime": {"$lt": previous_day}})
 # col.delete_many({})
 col.insert_many(data_json)
-
-print('ok')
-
-
-#===============================================================================
-connection = arubaapi.ArubaAPI('140.118.151.248', "apiUser", "x564#kdHrtNb563abcde",4343,insecure=True)
-data = connection.cli('show ap monitor ap-list ap-name IY_10F_AP01')
-
-df=pd.DataFrame()
-index=0
-for values in row_tags:
-    
-    data=values.find_all('value')
-    data_total=[]
-    
-    time_stamp =int(time.time())
-    struct_time = time.localtime(time_stamp)
-    timeString = time.strftime("%Y-%m-%d-%H-%M", struct_time)
-    data_total.append(time_stamp)
-
-    for i in range(len(data)):
-
-        data_total.append(data[i].text)
-        
-    index+=1
-    df[index]=data_total
-
-for values in header_tags:
-    data_total=[] 
-    data_total.append('time_stamp')
-    column_name=values.find_all('column_name')
-    for i in range(len(column_name)) :
-        print(column_name[i].text)
-        data_total.append(column_name[i].text)
-
-
-df.index=Client_Data
-df=df.T
-#df=df.sort_values(by=['ap-name'])
-df.reset_index(drop=True, inplace=True)
-
-connection.close()
-import datetime
-from datetime import timedelta
-
-ts = datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%S.000Z")
-ts = datetime.datetime.strptime(ts, "%Y-%m-%dT%H:%M:%S.%fz")
-ts
-n = 8
-# Subtract 8 hours from datetime object
-ts = ts - timedelta(hours=n)
-ts_tw_str = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-ts_tw = datetime.datetime.now()
-
-data_json = json.loads(df.to_json(orient='records'))
-data_json[1]
-
-
-from bson.objectid import ObjectId
-from datetime import datetime, timedelta
-
-previous_day = datetime.now() - timedelta(days=1) 
-client = MongoClient("140.118.70.40",27017)
-db = client['AP']
-col=db["Controller4_3"]
-col.insert_many(data_json)
-
 
 print('ok')
